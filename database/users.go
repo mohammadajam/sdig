@@ -1,4 +1,4 @@
-package database_sdig
+package database
 
 import (
 	"database/sql"

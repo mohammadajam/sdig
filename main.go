@@ -6,8 +6,8 @@ import (
 	"net"
 
 	"sdig/server"
-	"sdig/database_sdig"
-	_ "sdig/database_sdig"
+	//"sdig/database"
+	"sdig/database"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -15,9 +15,9 @@ import (
 func main() {
 	listener, err := net.Listen("tcp", "0.0.0.0:4000")
 
-	database_sdig.CreateChatsTable()
-	database_sdig.CreateUsersTable()
-	database_sdig.CreateLoggedInChatsTable()
+	database.CreateChatsTable()
+	database.CreateUsersTable()
+	database.CreateLoggedInChatsTable()
 
 
 	chatManager := server.NewChatManager()
