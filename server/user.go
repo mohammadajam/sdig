@@ -4,106 +4,82 @@ import (
 	"log"
 	"net"
 	"strings"
-	"sync"
-
-	"database/sql"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
+// This type contains information about the client.
+// The information is the following:
+//	username: a unique name to each user.
+// 	name: a nickname of sort, it doesn't have to be unique.
+// 	conn: the socket.
+// 	chats: a map of strings that represents a unique id to a channel of the chat of that id.
+// 	managerChan: the channel of the chat manager.
+// 	messages: a channel of messages to be sent to the client.
+// 	connected: a bool that represents whether a client has logged in to a user.
 type User struct {
-	username string
-	name string
-	conn net.Conn
-	chats map[string]chan ClientRequest
-	managerChan chan ClientRequest
-	requests chan Request
-	connected bool
-	mu sync.RWMutex
+	username string						// a unique name to each user
+	name string							// a nickname of sort, it doesn't have to be unique.
+	conn net.Conn						// the socket of the client.
+	chats map[string]chan ClientRequest	// a map of strings that represents a unique id to a channel of the chat of that id.
+	managerChan chan ClientRequest		// the chanel of the chat manager.
+	messages chan Message				// a chanel of messages to be sent to the client.
+	connected bool						// a bool that represents whether a client has logged in to a user.
 }
 
+// Initializes a new user that isn't logged in to any account.
 func NewUser(conn net.Conn, managerChan chan ClientRequest) User {
 	return User {
 		conn: conn,
 		managerChan: managerChan,
+		chats: make(map[string]chan ClientRequest),
+		messages: make(chan Message),
 		connected: false,
 	}
 }
 
-
-func (u *User) HandleUser() {
+// Handles and procceses requests sent by the user throgh the socket and sends the proccesed request to a chat or to the chat manager.
+func (u *User) HandleUserRequest() {
 	var buffer []byte = make([]byte, 1240)
 
 	for {
 		n, err := u.conn.Read(buffer)
-			
 		if err != nil {
 			log.Println("ERROR: Failed to read from user:", err)
 		}
-
 		message := string(buffer[:n])
 
-		message_slices := strings.Split(message, " ")
-		
 		if u.connected == false {
 			if buffer[0] == 'l' {
-				username := strings.TrimSpace(message_slices[1])
-				password := strings.TrimSpace(message_slices[2])
-
-				db, err := sql.Open("sqlite3", "sdig.db")
-				if err != nil {
-					log.Println("ERROR: Failed to open database")
-					u.conn.Write([]byte("l DatabaseError"))
-					continue
-				}
-
-				var dbPassword string
-
-				stmnt, err := db.Prepare("SELECT password FROM users WHERE username = ?")
-				if err != nil {
-					log.Fatalln("ERROR: COULD NOT PREPARE STATMENT:", err)
-				}
-				
-				u.mu.RLock()
-				err = stmnt.QueryRow(username).Scan(&dbPassword)
-				if err == sql.ErrNoRows {
-					u.conn.Write([]byte("l NoSuchUser"))
-					continue
-				}
-				u.mu.RUnlock()
-				if err != nil {
-					log.Println("ERROR: An error occured during reading from database:", err)
-					u.conn.Write([]byte("l DatabaseError"))
-					continue
-				}
-				dbPassword = strings.TrimSpace(dbPassword)
-
-				if dbPassword == password {
-					u.conn.Write([]byte("l connected"))
-					u.connected = true
-					u.managerChan <- NewClientRequest("get chats", "logged in", u)
+				username, password, found := strings.Cut(
+					strings.TrimPrefix(message, "l "),
+					" ");
+				if found == false {
+					u.messages <- NewMessage("e", "Error: unable to find username and password")
+				} else {
+					if strings.ContainsAny(username, " ") || 
+						strings.ContainsAny(password, " ") {
+						u.messages <- NewMessage("e", "Error: username or password contains a space")
+					} else {
+						u.managerChan <- NewLoginRequest(username, password, u)
+					}
 				}
 			}
-			continue
+		} else {
+			switch buffer[0] {
+			// TODO: handle requests after the client has logged in.
+			// example "m" for message, which means that the message should be sent to the chat specified in the message.
+			}
 		}
-		
-		if buffer[0] == 'm' {
-			client_message := strings.Join(message_slices[2:], " ")
-			u.chats[message_slices[1]] <- NewClientRequest("send", client_message, u)
-			
-		}
-
 	}
 }
 
-func (u *User) HandleUserRequest() {
-
-}
-
-func (u *User) HandleRequestsToUser() {
+// Handles messages from the chat manager or from other chats.
+// NOTE: for now the function just send the messages to the client, though this may change in the future.
+func (u *User) HandleMessagesToUser() {
 	for {
-		select {
-
-		}
+		mes := <- u.messages
+		mesType := mes.string
+		content := mes.content
+		message := mesType + " " +  content
+		u.conn.Write([]byte(message))
 	}
 }

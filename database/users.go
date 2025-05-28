@@ -7,6 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Creates the users table in the database.
 func CreateUsersTable() {
 	const userTable = `
 	CREATE TABLE IF NOT EXISTS users (
@@ -18,7 +19,7 @@ func CreateUsersTable() {
 	);
 	`
 
-	db, err := sql.Open("sqlite3", "sdig.db")
+	db, err := sql.Open("sqlite3", DatabasePath)
 	defer db.Close()
 
 
@@ -39,6 +40,8 @@ func CreateUsersTable() {
 	log.Println("Users table created")
 }
 
+// Create the logged_in table in the database.
+// it contains data about which chats are each user in.
 func CreateLoggedInChatsTable() {
 	const loggedInTable = `
 	CREATE TABLE IF NOT EXISTS logged_in (
@@ -48,7 +51,7 @@ func CreateLoggedInChatsTable() {
 	);
 	`
 
-	db, err := sql.Open("sqlite3", "sdig.db")
+	db, err := sql.Open("sqlite3", DatabasePath)
 	defer db.Close()
 
 	if err != nil {
@@ -67,12 +70,3 @@ func CreateLoggedInChatsTable() {
 	}
 	log.Println("Logged in table created")
 }
-
-
-
-
-
-
-
-
-

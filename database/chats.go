@@ -7,7 +7,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const DatabasePath string = "sdig.db"
 
+// Create the table for the chats in the database
 func CreateChatsTable() {
 	const chatTable = `
 	CREATE TABLE IF NOT EXISTS chats (
@@ -17,7 +19,7 @@ func CreateChatsTable() {
 		password TEXT NOT NULL
 	);
 	`
-	db, err := sql.Open("sqlite3", "sdig.db")
+	db, err := sql.Open("sqlite3", DatabasePath) 
 	defer db.Close()
 
 	if err != nil {
@@ -36,11 +38,3 @@ func CreateChatsTable() {
 	}
 	log.Println("Chats table created")
 }
-
-
-
-
-
-
-
-
