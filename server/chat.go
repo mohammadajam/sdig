@@ -84,13 +84,19 @@ func (chat *Chat) HandleChat() {
 // ClientRequest is requests by the client to a chat or to  the chat manager.
 type ClientRequest struct {
 	// the type of the request.
-	//	"lo": "login"
-	//	"nu": "new user"
-	//	"du": "delete user"
-	//	"jo": "join chat"
-	//	"le": "leave chat"
-	//	"nc": "new chat"
-	//	"dc": "delete chat"
+	//	chat manager related.
+	//		"lo": "login"
+	//		"nu": "new user"
+	//		"du": "delete user"
+	//		"jo": "join chat"
+	//		"le": "leave chat"
+	//		"nc": "new chat"
+	//		"dc": "delete chat"
+	//	chat related.
+	//		"nm": "new message"
+	//		"dm": "delete message"
+	//		"gm": "get chat messages"
+	//		"gu": "get connected users"
 	string
 	content string	// the content of the request.
 	sender *User	// a pointer to the user who sent the request.

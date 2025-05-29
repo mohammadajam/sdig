@@ -19,7 +19,7 @@ func CreateChatsTable() {
 		password TEXT NOT NULL
 	);
 	`
-	db, err := sql.Open("sqlite3", DatabasePath) 
+	db, err := sql.Open("sqlite3", DatabasePath)
 	defer db.Close()
 
 	if err != nil {
