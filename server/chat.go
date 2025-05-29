@@ -9,6 +9,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const DatabasePath string = "sdig.db"
+
 // This type contains the information about a chat.
 // the information is the following:
 //	chatId: a unique name for each chat.
@@ -28,7 +30,7 @@ type Chat struct {
 func LoadChats(mu *sync.RWMutex) map[string]Chat {
 	chats := make(map[string]Chat)
 
-	db, err := sql.Open("sqlite3", "sdig.db")
+	db, err := sql.Open("sqlite3", DatabasePath)
 	if err != nil {
 		log.Fatalln("ERROR: COULD NOT LOAD CHATS:", err)
 	}
@@ -71,67 +73,38 @@ func NewChat(chatId string, chatName string, mu *sync.RWMutex) Chat {
 }
 
 // Handles requests from users connected to the chat.
-func (chat *Chat) HandleChat() {
+func (chat *Chat) HandleRequests() {
+	db, err := sql.Open("sqlite3", DatabasePath)
+	if err != nil {
+		log.Panicln("ERROR: COULD OPEN DATABASE:", err)
+	}
+
+	insertMessage, err := db.Prepare("INSERT INTO messages (username, chatId, content) VALUES (?, ?, ?)")
+	if err != nil {
+		log.Panicln("ERROR: COULD PREPARE STATEMENT:", err)
+	}
+
+	log.Println("Start", chat.chatName, "handling")
+
 	for {
 		req := <- chat.chatChan
 		switch (req.string) {
-
+		case "nm":
+			message := []byte(chat.chatId + " " + req.content)
+			_, err = insertMessage.Exec(req.sender.username, chat.chatId, req.content)
+			if err != nil {
+				log.Println("Error: Could not insert message", err)
+				continue
+			}
+			
+			for username, user := range chat.users {
+				log.Println(username)
+				if username != req.sender.username {
+					user.conn.Write(message)
+				}
+			}
+			
 		}
-	}
-}
-
-
-// ClientRequest is requests by the client to a chat or to  the chat manager.
-type ClientRequest struct {
-	// the type of the request.
-	//	chat manager related.
-	//		"lo": "login"
-	//		"nu": "new user"
-	//		"du": "delete user"
-	//		"jo": "join chat"
-	//		"le": "leave chat"
-	//		"nc": "new chat"
-	//		"dc": "delete chat"
-	//	chat related.
-	//		"nm": "new message"
-	//		"dm": "delete message"
-	//		"gm": "get chat messages"
-	//		"gu": "get connected users"
-	string
-	content string	// the content of the request.
-	sender *User	// a pointer to the user who sent the request.
-}
-
-
-func NewClientRequest(request string, data string, user *User) ClientRequest {
-	return ClientRequest{
-		string: request,
-		content: data,
-		sender: user,
-	}
-}
-
-func NewLoginRequest(username string, password string, user *User) ClientRequest {
-	req_content := strings.TrimSpace(username) + " " + strings.TrimSpace(password)
-	return NewClientRequest("lo", req_content, user)
-}
-
-// TODO: add functions for all request types specified in the ClientRequest description.
-
-
-// Message is a message by a chat or the chat manager to a client.
-type Message struct {
-	// The string is the type of the message.
-	// The types are for now ("n" for "notify" and "e" for "error")
-	string
-	content string 	// the content of the message.
-}
-
-// Create a new Message.
-func NewMessage(message string, content string) Message {
-	return Message{
-		string: message,
-		content: content,
 	}
 }
 
@@ -162,6 +135,12 @@ func NewChatManager(mu *sync.RWMutex) ChatManager {
 		chats: LoadChats(mu),
 		ManagerChan: make(chan ClientRequest),
 		mu: mu,
+	}
+}
+
+func (cm *ChatManager)StartChatsHandleRequests() {
+	for _, chat := range cm.chats {
+		go chat.HandleRequests()
 	}
 }
 

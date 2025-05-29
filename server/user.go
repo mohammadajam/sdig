@@ -6,6 +6,23 @@ import (
 	"strings"
 )
 
+// Message is a message by a chat or the chat manager to a client.
+type Message struct {
+	// The string is the type of the message.
+	// The types are for now ("n" for "notify" and "e" for "error")
+	string
+	content string 	// the content of the message.
+}
+
+// Create a new Message.
+func NewMessage(message string, content string) Message {
+	return Message{
+		string: message,
+		content: content,
+	}
+}
+
+
 // This type contains information about the client.
 // The information is the following:
 //	username: a unique name to each user.
@@ -38,35 +55,29 @@ func NewUser(conn net.Conn, managerChan chan ClientRequest) User {
 
 // Handles and procceses requests sent by the user throgh the socket and sends the proccesed request to a chat or to the chat manager.
 func (u *User) HandleUserRequest() {
-	var buffer []byte = make([]byte, 1240)
-
 	for {
-		n, err := u.conn.Read(buffer)
+		var buffer []byte = make([]byte, 1240)
+		_, err := u.conn.Read(buffer)
 		if err != nil {
 			log.Println("ERROR: Failed to read from user:", err)
 		}
-		message := string(buffer[:n])
+		message := strings.Fields(strings.TrimSpace(string(buffer)))
 
 		if u.connected == false {
-			if buffer[0] == 'l' {
-				username, password, found := strings.Cut(
-					strings.TrimPrefix(message, "l "),
-					" ");
-				if found == false {
-					u.messages <- NewMessage("e", "Error: unable to find username and password")
-				} else {
-					if strings.ContainsAny(username, " ") || 
-						strings.ContainsAny(password, " ") {
-						u.messages <- NewMessage("e", "Error: username or password contains a space")
-					} else {
-						u.managerChan <- NewLoginRequest(username, password, u)
-					}
+			if message[0] == "lo" {
+				if len(message)-1 != 3 {
+					u.messages <- NewMessage("e", "Error: Unknown username or password")
 				}
+				username, password := message[1], message[2]
+						u.managerChan <- NewLoginRequest(username, password, u)
 			}
 		} else {
-			switch buffer[0] {
+			switch message[0] {
 			// TODO: handle requests after the client has logged in.
-			// example "m" for message, which means that the message should be sent to the chat specified in the message.
+			case "nm":
+				log.Println("Got Message")
+				chatId, content := message[1] ,strings.Join(message[2:], " ")
+				u.chats[chatId] <- NewClientRequest("nm", content, u)
 			}
 		}
 	}

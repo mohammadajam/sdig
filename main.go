@@ -13,10 +13,12 @@ func main() {
 	database.CreateChatsTable()
 	database.CreateUsersTable()
 	database.CreateLoggedInChatsTable()
+	database.CreateMessageTable()
 
 	var mu sync.RWMutex
 	chatManager := server.NewChatManager(&mu)
 	go chatManager.HandleRequests()
+	chatManager.StartChatsHandleRequests()
 
 	listener, err := net.Listen("tcp", "0.0.0.0:4000")
 	if err != nil {
