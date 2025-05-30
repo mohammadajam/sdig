@@ -56,7 +56,7 @@ func NewUser(conn net.Conn, managerChan chan ClientRequest) User {
 // Handles and procceses requests sent by the user throgh the socket and sends the proccesed request to a chat or to the chat manager.
 func (u *User) HandleUserRequest() {
 	for {
-		var buffer []byte = make([]byte, 1240)
+		var buffer []byte = make([]byte, 1024)
 		_, err := u.conn.Read(buffer)
 		if err != nil {
 			log.Println("ERROR: Failed to read from user:", err)
@@ -64,20 +64,26 @@ func (u *User) HandleUserRequest() {
 		message := strings.Fields(strings.TrimSpace(string(buffer)))
 
 		if u.connected == false {
-			if message[0] == "lo" {
+			if message[0] == LoginRequestType {
 				if len(message)-1 != 3 {
 					u.messages <- NewMessage("e", "Error: Unknown username or password")
 				}
 				username, password := message[1], message[2]
-						u.managerChan <- NewLoginRequest(username, password, u)
+						u.managerChan <- LoginRequest(username, password, u)
 			}
 		} else {
 			switch message[0] {
 			// TODO: handle requests after the client has logged in.
-			case "nm":
-				log.Println("Got Message")
+			case NewMessageRequestType:
 				chatId, content := message[1] ,strings.Join(message[2:], " ")
-				u.chats[chatId] <- NewClientRequest("nm", content, u)
+				u.chats[chatId] <- NewMessageRequest(content, u)
+			case QuitRequestType:
+				for _, chat := range u.chats {
+					chat <- QuitRequest(u)
+				}
+				u.messages <- NewMessage("q", "quitting")
+				u.conn.Close()
+				return
 			}
 		}
 	}
@@ -90,6 +96,9 @@ func (u *User) HandleMessagesToUser() {
 		mes := <- u.messages
 		mesType := mes.string
 		content := mes.content
+		if mesType == "q" {
+			break
+		}
 		message := mesType + " " +  content
 		u.conn.Write([]byte(message))
 	}

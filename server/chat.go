@@ -89,7 +89,7 @@ func (chat *Chat) HandleRequests() {
 	for {
 		req := <- chat.chatChan
 		switch (req.string) {
-		case "nm":
+		case NewMessageRequestType:
 			message := []byte(chat.chatId + " " + req.content)
 			_, err = insertMessage.Exec(req.sender.username, chat.chatId, req.content)
 			if err != nil {
@@ -98,12 +98,12 @@ func (chat *Chat) HandleRequests() {
 			}
 			
 			for username, user := range chat.users {
-				log.Println(username)
 				if username != req.sender.username {
 					user.conn.Write(message)
 				}
 			}
-			
+		case QuitRequestType:
+			delete(chat.users, req.content)
 		}
 	}
 }
@@ -175,7 +175,7 @@ func (cm *ChatManager) HandleRequests() {
 		log.Println("Got Request")
 
 		switch req.string {
-		case "lo":
+		case LoginRequestType:
 			cm.mu.RLock()
 			username, sentPassword, _ := strings.Cut(req.content, " ")
 
