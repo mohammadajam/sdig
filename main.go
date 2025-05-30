@@ -12,7 +12,7 @@ import (
 func main() {
 	database.CreateChatsTable()
 	database.CreateUsersTable()
-	database.CreateLoggedInChatsTable()
+	database.CreateJoinedTable()
 	database.CreateMessageTable()
 
 	var mu sync.RWMutex

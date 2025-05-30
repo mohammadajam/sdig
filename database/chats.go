@@ -16,7 +16,8 @@ func CreateChatsTable() {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		chatId TEXT UNIQUE NOT NULL,
 		chatName TEXT NOT NULL,
-		password TEXT NOT NULL
+		password TEXT NOT NULL,
+		created_at TEXT NOT NULL DEFAULT(datetime('now'))
 	);
 	`
 	db, err := sql.Open("sqlite3", DatabasePath)
@@ -45,7 +46,8 @@ func CreateMessageTable() {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT REFERENCES users(username),
 		chatId TEXT REFERENCES chats(chatId),
-		content TEXT NOT NULL
+		content TEXT NOT NULL,
+		date TEXT NOT NULL DEFAULT(datetime('now'))
 	);
 	`
 	db, err := sql.Open("sqlite3", DatabasePath)

@@ -138,6 +138,7 @@ func NewChatManager(mu *sync.RWMutex) ChatManager {
 	}
 }
 
+// Start the request handling of each chat.
 func (cm *ChatManager)StartChatsHandleRequests() {
 	for _, chat := range cm.chats {
 		go chat.HandleRequests()
@@ -153,7 +154,7 @@ func (cm *ChatManager) HandleRequests() {
 	defer db.Close()
 
 
-	get_chats, err := db.Prepare("SELECT chatId FROM logged_in WHERE user=?")
+	get_chats, err := db.Prepare("SELECT chatId FROM joined WHERE username=?")
 	if err != nil {
 		log.Fatalln("ERROR: FAILED TO PREPARE STATEMENT:", err)
 	}

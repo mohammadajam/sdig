@@ -15,7 +15,7 @@ func CreateUsersTable() {
 		username TEXT UNIQUE,
 		name TEXT NOT NULL,
 		password TEXT NOT NULL,
-		created_at TEXT NOT NULL
+		created_at TEXT NOT NULL DEFAULT(datetime('now'))
 	);
 	`
 
@@ -42,12 +42,13 @@ func CreateUsersTable() {
 
 // Create the logged_in table in the database.
 // it contains data about which chats are each user in.
-func CreateLoggedInChatsTable() {
+func CreateJoinedTable() {
 	const loggedInTable = `
-	CREATE TABLE IF NOT EXISTS logged_in (
+	CREATE TABLE IF NOT EXISTS joined (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user TEXT REFERENCES users(username),
-		chatId TEXT REFERENCES chats(chatId)
+		username TEXT REFERENCES users(username),
+		chatId TEXT REFERENCES chats(chatId),
+		joined_at TEXT NOT NULL DEFAULT(datetime('now'))
 	);
 	`
 
