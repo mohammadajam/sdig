@@ -63,7 +63,9 @@ func (u *User) HandleUserRequest() {
 		}
 		message := strings.Fields(strings.TrimSpace(string(buffer[0:n])))
 		argCount := len(message)-1
-
+		if argCount == -1 {
+			continue;
+		}
 
 		if u.connected == false {
 			switch message[0] {
