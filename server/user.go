@@ -57,19 +57,23 @@ func NewUser(conn net.Conn, managerChan chan ClientRequest) User {
 func (u *User) HandleUserRequest() {
 	for {
 		var buffer []byte = make([]byte, 1024)
-		_, err := u.conn.Read(buffer)
+		n, err := u.conn.Read(buffer)
 		if err != nil {
 			log.Println("ERROR: Failed to read from user:", err)
 		}
-		message := strings.Fields(strings.TrimSpace(string(buffer)))
+		message := strings.Fields(strings.TrimSpace(string(buffer[0:n])))
+		argCount := len(message)-1
+
 
 		if u.connected == false {
-			if message[0] == LoginRequestType {
-				if len(message)-1 != 3 {
+			switch message[0] {
+			case LoginRequestType:
+				if argCount != 2 {
 					u.messages <- NewMessage("e", "Error: Unknown username or password")
+					continue
 				}
 				username, password := message[1], message[2]
-						u.managerChan <- LoginRequest(username, password, u)
+				u.managerChan <- LoginRequest(username, password, u)
 			}
 		} else {
 			switch message[0] {
