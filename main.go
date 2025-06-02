@@ -10,10 +10,7 @@ import (
 )
 
 func main() {
-	database.CreateChatsTable()
-	database.CreateUsersTable()
-	database.CreateJoinedTable()
-	database.CreateMessageTable()
+	database.CreateTables()
 
 	var mu sync.RWMutex
 	chatManager := server.NewChatManager(&mu)

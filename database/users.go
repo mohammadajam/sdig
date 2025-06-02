@@ -12,7 +12,7 @@ func CreateUsersTable() {
 	const userTable = `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE,
+		username TEXT NOT NULL UNIQUE,
 		name TEXT NOT NULL,
 		password TEXT NOT NULL,
 		created_at TEXT NOT NULL DEFAULT(datetime('now'))
@@ -46,8 +46,8 @@ func CreateJoinedTable() {
 	const loggedInTable = `
 	CREATE TABLE IF NOT EXISTS joined (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT REFERENCES users(username),
-		chatId TEXT REFERENCES chats(chatId),
+		username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+		chatId TEXT NOT NULL REFERENCES chats(chatId) ON DELETE CASCADE,
 		joined_at TEXT NOT NULL DEFAULT(datetime('now'))
 	);
 	`
