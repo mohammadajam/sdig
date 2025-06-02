@@ -83,15 +83,16 @@ func (chat *Chat) HandleRequests() {
 	if err != nil {
 		log.Panicln("ERROR: COULD PREPARE STATEMENT:", err)
 	}
-
-	log.Println("Start", chat.chatName, "handling")
+	defer insertMessage.Close()
 
 	for {
 		req := <- chat.chatChan
 		switch (req.string) {
 		case NewMessageRequestType:
 			message := []byte(chat.chatId + " " + req.content)
+			chat.mu.Lock()
 			_, err = insertMessage.Exec(req.sender.username, chat.chatId, req.content)
+			chat.mu.Unlock()
 			if err != nil {
 				log.Println("Error: Could not insert message", err)
 				continue
