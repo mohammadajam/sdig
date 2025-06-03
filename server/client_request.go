@@ -6,14 +6,15 @@ import "strings"
 type ClientRequest struct {
 	// the type of the request.
 	//	chat manager related.
-	//		"lo": "login"
-	//		"nu": "new user"				unimplemented
-	//		"du": "delete user"				unimplemented
-	//		"jo": "join chat"				unimplemented
-	//		"le": "leave chat"				unimplemented
-	//		"nc": "new chat"				unimplemented
-	//		"dc": "delete chat"				unimplemented
-	//		"gc": "get connected chats"		unimplemented
+	//		"li": "login"
+	//		"lo": "logout"
+	//		"nu": "new user"
+	//		"du": "delete user"
+	//		"jo": "join chat"
+	//		"le": "leave chat"
+	//		"nc": "new chat"
+	//		"dc": "delete chat"
+	//		"gc": "get connected chats"
 	//		"qu": "quit"
 	//	chat related.
 	//		"nm": "new message"
@@ -27,7 +28,9 @@ type ClientRequest struct {
 
 const (
 	// A request to log in to an existing user.
-	LoginRequestType  string		= "lo"
+	LoginRequestType  string		= "li"
+	// A requset to log out from a user.
+	LogoutRequestType string		= "lo"
 	// A request to create a new user.
 	NewUserRequestType string		= "nu"
 	// A request to delete an existing user.
@@ -63,10 +66,15 @@ func NewClientRequest(request string, data string, user *User) ClientRequest {
 	}
 }
 
-// Creates a client request of the type LoginRequestType("lo")
+// Creates a client request of the type LoginRequestType("li")
 func LoginRequest(username string, password string, user *User) ClientRequest {
 	req_content := strings.TrimSpace(username) + " " + strings.TrimSpace(password)
 	return NewClientRequest(LoginRequestType, req_content, user)
+}
+
+// Creates a client request of the type LogoutRequestType("lo")
+func LogoutRequest(user *User) ClientRequest {
+	return NewClientRequest(LogoutRequestType, user.username, user)
 }
 
 // Creates a client request of the type NewUserRequestType("nu")
@@ -76,9 +84,8 @@ func NewUserRequest(username string, name string, password string, user *User) C
 }
 
 // Creates a client request of the type DeleteUserRequestType("du")
-func DeleteUserRequest(username string, password string, user *User) ClientRequest {
-	reqContent := strings.Join([]string{username, password}, " ")
-	return NewClientRequest(DeleteUserRequestType, reqContent, user)
+func DeleteUserRequest(password string, user *User) ClientRequest {
+	return NewClientRequest(DeleteUserRequestType, password, user)
 }
 
 // Creates a client request of the type JoinChatRequestType("jo")
@@ -102,6 +109,11 @@ func NewChatRequest(chatId string, chatName string, chatPassword string, user *U
 func DeleteChatRequest(chatId string, chatPassword string, user *User) ClientRequest {
 	reqContent := strings.Join([]string{chatId, chatPassword}, " ")
 	return NewClientRequest(DeleteChatRequestType, reqContent, user)
+}
+
+//Creates a client request of the type GetChatsRequestType("gc")
+func GetChatsRequest(user *User) ClientRequest {
+	return NewClientRequest(GetChatsRequestType, user.username, user)
 }
 
 // Creates a client request of the type QuitRequestType("qu")
