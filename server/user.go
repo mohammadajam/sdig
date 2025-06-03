@@ -76,14 +76,19 @@ func (u *User) HandleUserRequest() {
 				}
 				username, password := message[1], message[2]
 				u.managerChan <- LoginRequest(username, password, u)
-			}
-		} else {
-			switch message[0] {
-			// TODO: handle requests after the client has logged in.
-			case NewMessageRequestType:
-				chatId, content := message[1] ,strings.Join(message[2:], " ")
-				u.chats[chatId] <- NewMessageRequest(content, u)
+
+			case NewUserRequestType:
+				if argCount < 3 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				u.managerChan <- NewUserRequest(message[1], strings.Join(message[2:argCount], " "), message[argCount], u)
+
 			case QuitRequestType:
+				if argCount != 0 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
 				for _, chat := range u.chats {
 					chat <- QuitRequest(u)
 				}
@@ -91,12 +96,101 @@ func (u *User) HandleUserRequest() {
 				u.conn.Close()
 				return
 			}
+		} else {
+			switch message[0] {
+			case LogoutRequestType:
+				if argCount != 0 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				for _, chat := range u.chats {
+					chat <- LogoutRequest(u)
+				}
+				u.connected = false
+				u.chats =  make(map[string]chan ClientRequest)
+				u.messages <- NewMessage("n", "logged out")
+
+			case DeleteUserRequestType:
+				if argCount != 1 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				u.managerChan <- DeleteUserRequest(message[1], u)
+
+			case JoinChatRequestType:
+				if argCount != 2 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				u.managerChan <- JoinChatRequest(message[1], message[2], u)
+
+			case LeaveChatRequestType:
+				if argCount != 1 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				u.managerChan <- LeaveChatRequest(message[1], u)
+
+			case NewChatRequestType:
+				if argCount < 3 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				u.managerChan <- NewChatRequest(message[1], strings.Join(message[2:argCount], " "), message[argCount], u)
+
+			case DeleteChatRequestType:
+				if argCount != 2 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				u.managerChan <- DeleteChatRequest(message[1], message[2], u)
+
+			case QuitRequestType:
+				if argCount != 0 {
+					u.messages <- NewMessage("e", "Error: User data format Error")
+					continue
+				}
+				for _, chat := range u.chats {
+					chat <- QuitRequest(u)
+				}
+				u.messages <- NewMessage("q", "quitting")
+				u.conn.Close()
+				return
+
+			case NewMessageRequestType:
+				if argCount < 2 {
+					u.messages <- NewMessage("e", "Error: Message is empty or chat id is missing")
+					continue
+				}
+				chatId, content := message[1] ,strings.Join(message[2:], " ")
+				u.chats[chatId] <- NewMessageRequest(content, u)
+
+			case DeleteMessageRequestType:
+				if argCount < 2 {
+					u.messages <- NewMessage("e", "Error: Message ID is not present or chat id is missing")
+					continue
+				}
+				u.chats[message[1]] <- DeleteMessageRequest(message[2], u)
+
+			case GetMessagesRequestType:
+				if argCount < 3 {
+					u.messages <- NewMessage("e", "Error: Message IDs are not present empty or chat id is missing")
+					continue
+				}
+				u.chats[message[1]] <- GetMessagesRequest(message[2], message[3], u)
+
+			case GetUsersRequestType:
+				if argCount < 1 {
+					u.messages <- NewMessage("e", "Error:Chat ID is missing")
+					continue
+				}
+				u.chats[message[1]] <- GetUsersRequest(u)
+			}
 		}
 	}
 }
 
 // Handles messages from the chat manager or from other chats.
-// NOTE: for now the function just send the messages to the client, though this may change in the future.
 func (u *User) HandleMessagesToUser() {
 	for {
 		mes := <- u.messages
