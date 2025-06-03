@@ -18,7 +18,7 @@ func CreateChatsTable() {
 		chatName TEXT NOT NULL,
 		password TEXT NOT NULL,
 		created_at TEXT NOT NULL DEFAULT(datetime('now')),
-		owner TEXT NOT NULL DEFAULT 'Dev' REFERENCES users(username) ON DELETE CASCADE
+		owner TEXT NOT NULL DEFAULT 'Dev' REFERENCES users(username) ON DELETE RESTRICT
 	);
 	`
 	db, err := sql.Open("sqlite3", DatabasePath)
@@ -78,16 +78,22 @@ func CreateTables() {
 	if err != nil {
 		log.Fatalln("ERROR: COULD NOT OPEN DATABASE:", err)
 	}
-	stmnt, err := db.Prepare("PRAGMA foreign_keys = ON;")
-	defer stmnt.Close()
-	if err != nil {
-		log.Fatalln("ERROR: COULD NOT PREPARE STATMENT:", err)
-	}
 
-	_, err = stmnt.Exec()
+	_, err = db.Exec("PRAGMA foreign_keys = ON;")
 	if err != nil {
 		log.Fatalln("ERROR: COULD NOT ENABLE foreign_keys:", err)
 	}
+
+	//stmnt, err := db.Prepare("PRAGMA foreign_keys = ON;")
+	//defer stmnt.Close()
+	//if err != nil {
+	//	log.Fatalln("ERROR: COULD NOT PREPARE STATMENT:", err)
+	//}
+
+	//_, err = stmnt.Exec()
+	//if err != nil {
+	//	log.Fatalln("ERROR: COULD NOT ENABLE foreign_keys:", err)
+	//}
 	CreateUsersTable()
 	CreateChatsTable()
 	CreateMessageTable()
