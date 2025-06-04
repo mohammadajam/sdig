@@ -14,7 +14,7 @@ type ClientRequest struct {
 	//		"le": "leave chat"
 	//		"nc": "new chat"
 	//		"dc": "delete chat"
-	//		"gc": "get connected chats"
+	//		"gc": "get connected chats"		unimplemented
 	//		"qu": "quit"
 	//	chat related.
 	//		"nm": "new message"
