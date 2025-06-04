@@ -98,16 +98,31 @@ func (chat *Chat) HandleRequests() {
 		req := <- chat.chatChan
 		switch (req.string) {
 		case NewMessageRequestType:
-			message := []byte(chat.chatId + " " + req.content)
 			chat.mu.Lock()
-			_, err = insertMessage.Exec(req.sender.username, chat.chatId, req.content)
+			res, err := insertMessage.Exec(req.sender.username, chat.chatId, req.content)
 			chat.mu.Unlock()
 			if err != nil {
 				log.Println("Error: Could not insert message", err)
 				req.sender.messages <- NewMessage("e", "An error occured")
 				continue
 			}
+
+			id, err := res.LastInsertId()
+			if err != nil {
+				log.Println("Could not get insertion id")
+				req.sender.messages <- NewMessage("e", "An error occured")
+				continue
+			}
+
+			var date string
+			chat.mu.RLock()
+			err = getDate.QueryRow(id).Scan(&date)
+			chat.mu.RUnlock()
+
+			req.sender.conn.Write([]byte(date))
 			
+			message := []byte(chat.chatId + " " + date + " " + req.content)
+
 			for username, user := range chat.users {
 				if username != req.sender.username {
 					user.conn.Write(message)
