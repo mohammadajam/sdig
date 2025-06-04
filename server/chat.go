@@ -394,7 +394,7 @@ func (cm *ServerManager) HandleRequests() {
 				if affected == 0 {
 					req.sender.messages <- NewMessage("n", "Could not join, probably already joined")
 				} else if affected == 1 {
-					req.sender.messages <- NewMessage("n", chatId)
+					req.sender.messages <- NewMessage("n", "Joined " + chatId)
 					req.sender.chats[chatId] = cm.chats[chatId].chatChan
 					cm.chats[chatId].users[req.sender.username] = req.sender
 				}
@@ -463,8 +463,27 @@ func (cm *ServerManager) HandleRequests() {
 			cm.chats[chatId] = newChat
 			req.sender.chats[chatId] = newChat.chatChan
 			go newChat.HandleRequests()
-			cm.ManagerChan <- JoinChatRequest(chatId, password, req.sender)
 			req.sender.messages <- NewMessage("n", "Created new chat: " + chatId)
+
+			cm.mu.Lock()
+			res, err := joinChat.Exec(req.sender.username, chatId)
+			cm.mu.Unlock()
+			if err != nil {
+				log.Println("Error: Could not join user to chat:", err)
+				req.sender.messages <- NewMessage("e", "An error occured")
+			}
+
+			affected, err := res.RowsAffected()
+			if err != nil {
+				log.Println("Error: Could not get affected rows number:", err)
+				req.sender.messages <- NewMessage("e", "An error occured")
+			}
+
+			if affected == 1 {
+				req.sender.messages <- NewMessage("n", "Joined " + chatId)
+				req.sender.chats[chatId] = cm.chats[chatId].chatChan
+				cm.chats[chatId].users[req.sender.username] = req.sender
+			}
 
 		case DeleteChatRequestType:
 			chatId, chatPassword, _ := strings.Cut(req.content, " ")
