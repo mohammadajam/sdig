@@ -88,6 +88,12 @@ func (chat *Chat) HandleRequests() {
 	}
 	defer insertMessage.Close()
 
+	getDate, err := db.Prepare("SELECT date FROM messages WHERE id = ?")
+	if err != nil {
+		log.Panicln("ERROR: COULD PREPARE STATEMENT:", err)
+	}
+	defer getDate.Close()
+
 	for {
 		req := <- chat.chatChan
 		switch (req.string) {
