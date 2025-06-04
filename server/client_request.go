@@ -2,10 +2,10 @@ package server
 
 import "strings"
 
-// ClientRequest is requests by the client to a chat or to  the chat manager.
+// ClientRequest is requests by the client to a chat or to  the server manager.
 type ClientRequest struct {
 	// the type of the request.
-	//	chat manager related.
+	//	server manager related.
 	//		"li": "login"
 	//		"lo": "logout"
 	//		"nu": "new user"

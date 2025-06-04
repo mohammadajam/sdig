@@ -13,9 +13,9 @@ func main() {
 	database.CreateTables()
 
 	var mu sync.RWMutex
-	chatManager := server.NewChatManager(&mu)
-	go chatManager.HandleRequests()
-	chatManager.StartChatsHandleRequests()
+	serverManager := server.NewServerManager(&mu)
+	go serverManager.HandleRequests()
+	serverManager.StartChatsHandleRequests()
 
 	listener, err := net.Listen("tcp", "0.0.0.0:4000")
 	if err != nil {
@@ -29,7 +29,7 @@ func main() {
 			continue
 		}
 
-		user := server.NewUser(conn, chatManager.ManagerChan)
+		user := server.NewUser(conn, serverManager.ManagerChan)
 		go user.HandleUserRequest()
 		go user.HandleMessagesToUser()
 	}

@@ -122,7 +122,7 @@ func (chat *Chat) HandleRequests() {
 }
 
 
-// The chat manager is resposible for many things
+// The server manager is resposible for many things
 // They are:
 //	1. Load chats.
 //	2. Add new chats.
@@ -132,19 +132,19 @@ func (chat *Chat) HandleRequests() {
 //	6. Delete users.
 //	7. Add users to a chat.
 //	8. Remove users from a chat(leaving or banning).
-// The chat manager stores the following:
+// The server manager stores the following:
 //	chats: a map of chat ids to chats.
 //	ManagerChan: the channel through the client sends requests.
 //	mu: a pointer to a shared mutex.
-type ChatManager struct {
+type ServerManager struct {
 	chats map[string]Chat			// a map of chat ids to chats. should be loaded through LoadChats function.
 	ManagerChan chan ClientRequest	// the channel through the client sends requests.
 	mu *sync.RWMutex				// a pointer to a shared mutex.
 }
 
-// Creates a chat manager. uses LoadChats functions.
-func NewChatManager(mu *sync.RWMutex) ChatManager {
-	return ChatManager{
+// Creates a server manager. uses LoadChats functions.
+func NewServerManager(mu *sync.RWMutex) ServerManager {
+	return ServerManager{
 		chats: LoadChats(mu),
 		ManagerChan: make(chan ClientRequest, 10),
 		mu: mu,
@@ -152,14 +152,14 @@ func NewChatManager(mu *sync.RWMutex) ChatManager {
 }
 
 // Start the request handling of each chat.
-func (cm *ChatManager)StartChatsHandleRequests() {
+func (cm *ServerManager)StartChatsHandleRequests() {
 	for _, chat := range cm.chats {
 		go chat.HandleRequests()
 	}
 }
 
 // Handles user requests.
-func (cm *ChatManager) HandleRequests() {
+func (cm *ServerManager) HandleRequests() {
 	db, err := sql.Open("sqlite3", "sdig.db")
 	if err != nil {
 		log.Fatalln("ERROR: FAILED TO OPEN DATABASE:", err)

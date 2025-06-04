@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Message is a message by a chat or the chat manager to a client.
+// Message is a message by a chat or the server manager to a client.
 type Message struct {
 	// The string is the type of the message.
 	// The types are for now ("n" for "notify" and "e" for "error")
@@ -29,7 +29,7 @@ func NewMessage(message string, content string) Message {
 // 	name: a nickname of sort, it doesn't have to be unique.
 // 	conn: the socket.
 // 	chats: a map of strings that represents a unique id to a channel of the chat of that id.
-// 	managerChan: the channel of the chat manager.
+// 	serverChan: the channel of the server manager.
 // 	messages: a channel of messages to be sent to the client.
 // 	connected: a bool that represents whether a client has logged in to a user.
 type User struct {
@@ -37,23 +37,23 @@ type User struct {
 	name string							// a nickname of sort, it doesn't have to be unique.
 	conn net.Conn						// the socket of the client.
 	chats map[string]chan ClientRequest	// a map of strings that represents a unique id to a channel of the chat of that id.
-	managerChan chan ClientRequest		// the chanel of the chat manager.
+	serverChan chan ClientRequest		// the chanel of the server manager.
 	messages chan Message				// a chanel of messages to be sent to the client.
 	connected bool						// a bool that represents whether a client has logged in to a user.
 }
 
 // Initializes a new user that isn't logged in to any account.
-func NewUser(conn net.Conn, managerChan chan ClientRequest) User {
+func NewUser(conn net.Conn, serverChan chan ClientRequest) User {
 	return User {
 		conn: conn,
-		managerChan: managerChan,
+		serverChan: serverChan,
 		chats: make(map[string]chan ClientRequest),
 		messages: make(chan Message),
 		connected: false,
 	}
 }
 
-// Handles and procceses requests sent by the user throgh the socket and sends the proccesed request to a chat or to the chat manager.
+// Handles and procceses requests sent by the user throgh the socket and sends the proccesed request to a chat or to the server manager.
 func (u *User) HandleUserRequest() {
 	for {
 		var buffer []byte = make([]byte, 1024)
@@ -75,14 +75,14 @@ func (u *User) HandleUserRequest() {
 					continue
 				}
 				username, password := message[1], message[2]
-				u.managerChan <- LoginRequest(username, password, u)
+				u.serverChan <- LoginRequest(username, password, u)
 
 			case NewUserRequestType:
 				if argCount < 3 {
 					u.messages <- NewMessage("e", "Error: User data format Error")
 					continue
 				}
-				u.managerChan <- NewUserRequest(message[1], strings.Join(message[2:argCount], " "), message[argCount], u)
+				u.serverChan <- NewUserRequest(message[1], strings.Join(message[2:argCount], " "), message[argCount], u)
 
 			case QuitRequestType:
 				if argCount != 0 {
@@ -115,35 +115,35 @@ func (u *User) HandleUserRequest() {
 					u.messages <- NewMessage("e", "Error: User data format Error")
 					continue
 				}
-				u.managerChan <- DeleteUserRequest(message[1], u)
+				u.serverChan <- DeleteUserRequest(message[1], u)
 
 			case JoinChatRequestType:
 				if argCount != 2 {
 					u.messages <- NewMessage("e", "Error: User data format Error")
 					continue
 				}
-				u.managerChan <- JoinChatRequest(message[1], message[2], u)
+				u.serverChan <- JoinChatRequest(message[1], message[2], u)
 
 			case LeaveChatRequestType:
 				if argCount != 1 {
 					u.messages <- NewMessage("e", "Error: User data format Error")
 					continue
 				}
-				u.managerChan <- LeaveChatRequest(message[1], u)
+				u.serverChan <- LeaveChatRequest(message[1], u)
 
 			case NewChatRequestType:
 				if argCount < 3 {
 					u.messages <- NewMessage("e", "Error: User data format Error")
 					continue
 				}
-				u.managerChan <- NewChatRequest(message[1], strings.Join(message[2:argCount], " "), message[argCount], u)
+				u.serverChan <- NewChatRequest(message[1], strings.Join(message[2:argCount], " "), message[argCount], u)
 
 			case DeleteChatRequestType:
 				if argCount != 2 {
 					u.messages <- NewMessage("e", "Error: User data format Error")
 					continue
 				}
-				u.managerChan <- DeleteChatRequest(message[1], message[2], u)
+				u.serverChan <- DeleteChatRequest(message[1], message[2], u)
 
 			case QuitRequestType:
 				if argCount != 0 {
@@ -190,7 +190,7 @@ func (u *User) HandleUserRequest() {
 	}
 }
 
-// Handles messages from the chat manager or from other chats.
+// Handles messages from the server manager or from other chats.
 func (u *User) HandleMessagesToUser() {
 	for {
 		mes := <- u.messages
