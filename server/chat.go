@@ -383,12 +383,14 @@ func (cm *ServerManager) HandleRequests() {
 				if err != nil {
 					log.Println("Error: Could not join user to chat:", err)
 					req.sender.messages <- NewMessage("e", "An error occured")
+					continue
 				}
 
 				affected, err := res.RowsAffected()
 				if err != nil {
 					log.Println("Error: Could not get affected rows number:", err)
 					req.sender.messages <- NewMessage("e", "An error occured")
+					continue
 				}
 
 				if affected == 0 {
